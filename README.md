@@ -7,8 +7,10 @@ A Python package for scraping OfferUp listings and a production-grade FastAPI ap
 - [Installation](#installation)
 - [Package Usage](#package-usage)
 - [API Usage](#api-usage)
-- [Project Structure](#project-structure)
+- [Deployment](#deployment)
 - [Development](#development)
+- [Project Structure](#project-structure)
+- [License](#license)
 
 ## Installation
 
@@ -24,13 +26,7 @@ Or install from source:
 pip install -r requirements.txt
 ```
 
-### Install API Dependencies
-
-For the FastAPI application:
-
-```bash
-pip install -r requirements.txt
-```
+This will install both the `pyOfferUp` package and all API dependencies.
 
 ## Package Usage
 
@@ -88,7 +84,7 @@ details = fetch.get_listing_details(listing_id)
 
 ### Quick Start
 
-1. **Run the API server:**
+1. **Run the API server locally:**
 ```bash
 python main.py
 ```
@@ -151,39 +147,79 @@ curl "http://localhost:8000/api/v1/cars/{listing_id}"
 
 Set environment variables (optional):
 - `HOST`: Server host (default: 0.0.0.0)
-- `PORT`: Server port (default: 8000)
+- `PORT`: Server port (default: 8000, automatically set by Render in production)
 - `DEBUG`: Enable debug mode (default: false)
 - `CORS_ORIGINS`: CORS allowed origins (default: *)
 
-## Project Structure
+## Deployment
 
-```
-.
-├── main.py                 # FastAPI application entry point
-├── pyOfferUp/              # Core package
-│   ├── __init__.py
-│   ├── fetch.py            # Scraping functions
-│   ├── places.py           # Location data
-│   └── constants.py        # Constants and enums
-├── api/                    # FastAPI application
-│   ├── config.py          # Configuration settings
-│   ├── models.py          # Pydantic models
-│   ├── middleware.py       # Custom middleware
-│   ├── routers/           # API route handlers
-│   │   ├── cars.py
-│   │   ├── locations.py
-│   │   └── health.py
-│   └── services/          # Business logic
-│       ├── car_service.py
-│       └── location_service.py
-├── tests/                 # Test files
-│   ├── test_package.py
-│   ├── test_used_cars.py
-│   └── test_cls63_search.py
-├── requirements.txt       # Python dependencies
-├── setup.py              # Package setup
-└── README.md             # This file
-```
+### Render Deployment
+
+This application is configured for deployment on [Render](https://render.com).
+
+#### Quick Setup
+
+1. **Connect your repository** to Render
+2. **Create a new Web Service** in Render dashboard
+3. **Configure the service:**
+   - **Build Command:** `pip install -r requirements.txt`
+   - **Start Command:** `uvicorn main:app --host 0.0.0.0 --port $PORT`
+   - **Environment:** Python 3
+   - **Python Version:** 3.12.0 (or use `runtime.txt`)
+
+#### Important Notes
+
+**PORT Environment Variable:**
+- Render automatically sets the `PORT` environment variable
+- The app is configured to read `PORT` from the environment
+- **Do NOT set PORT manually** in Render's environment variables - Render sets it automatically
+
+**Environment Variables (Optional):**
+You can set these in Render's dashboard:
+- `HOST`: Server host (default: 0.0.0.0)
+- `DEBUG`: Enable debug mode (default: false)
+- `CORS_ORIGINS`: Comma-separated list of allowed origins (default: *)
+
+#### Configuration Files
+
+- `render.yaml` - Render service configuration (optional, can configure via dashboard)
+- `runtime.txt` - Specifies Python version (3.12.0)
+
+#### Testing Deployment
+
+After deployment, test the endpoints:
+- Health check: `https://your-app.onrender.com/api/v1/health`
+- API docs: `https://your-app.onrender.com/docs`
+- Search: `https://your-app.onrender.com/api/v1/cars/search?query=car&state=California&city=Los+Angeles&limit=5`
+
+#### Troubleshooting
+
+**Issue: App not starting**
+- Check that `requirements.txt` includes `-e .` to install the local package
+- Verify Python version matches runtime.txt (3.12.0)
+- Check build logs for import errors
+
+**Issue: Port binding errors**
+- Ensure start command uses `$PORT` (Render's environment variable)
+- Don't hardcode port numbers
+
+**Issue: Import errors**
+- Make sure `pyOfferUp` package is installed via `-e .` in requirements.txt
+- Verify all dependencies are in requirements.txt
+
+**Issue: "ModuleNotFoundError: No module named 'pyOfferUp'"**
+- Ensure `requirements.txt` includes `-e .` and build command runs successfully
+
+**Issue: Different results than local**
+- Check environment variables match local setup
+- Verify the same Python version is used (3.12.0)
+- Check Render logs for any errors or warnings
+
+**Issue: App crashes on startup**
+- Check build logs for import errors
+- Verify `pyOfferUp` package installed correctly
+- Check that all imports in `api/` modules work
+- Review Render logs for specific error messages
 
 ## Development
 
@@ -204,6 +240,46 @@ python tests/test_cls63_search.py
 ```bash
 python setup.py sdist bdist_wheel
 ```
+
+### Project Structure
+
+```
+pyOfferUp/
+├── api/                    # FastAPI application
+│   ├── config.py          # Configuration settings
+│   ├── models.py          # Pydantic models
+│   ├── middleware.py       # Custom middleware
+│   ├── routers/           # API route handlers
+│   │   ├── cars.py
+│   │   ├── locations.py
+│   │   └── health.py
+│   └── services/          # Business logic
+│       ├── car_service.py
+│       └── location_service.py
+├── pyOfferUp/             # Core package
+│   ├── __init__.py
+│   ├── fetch.py            # Scraping functions
+│   ├── places.py           # Location data
+│   └── constants.py        # Constants and enums
+├── tests/                 # Test files
+│   ├── test_package.py
+│   ├── test_used_cars.py
+│   └── test_cls63_search.py
+├── main.py               # API entry point
+├── requirements.txt      # Python dependencies
+├── setup.py             # Package setup
+├── render.yaml          # Render deployment config (optional)
+├── runtime.txt          # Python version specification
+└── README.md            # This file
+```
+
+### Key Features
+
+- **Package**: Direct scraping of OfferUp listings with location-based search
+- **API**: RESTful API with advanced filtering (year, make, model, mileage)
+- **Smart Filtering**: Extracts make/model from query strings, filters parts listings
+- **Vehicle Attributes**: Fetches detailed vehicle information when available
+- **Production Ready**: Configured for Render deployment with proper environment handling
 
 ## License
 
