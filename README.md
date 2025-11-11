@@ -162,10 +162,12 @@ This application is configured for deployment on [Render](https://render.com).
 1. **Connect your repository** to Render
 2. **Create a new Web Service** in Render dashboard
 3. **Configure the service:**
-   - **Build Command:** `pip install -r requirements.txt`
+   - **Build Command:** `pip install -r requirements.txt && pip install -e .`
    - **Start Command:** `uvicorn main:app --host 0.0.0.0 --port $PORT`
    - **Environment:** Python 3
    - **Python Version:** 3.12.0 (or use `runtime.txt`)
+
+   **Note:** The build command installs dependencies first, then installs the local `pyOfferUp` package.
 
 #### Important Notes
 
@@ -204,11 +206,19 @@ After deployment, test the endpoints:
 - Don't hardcode port numbers
 
 **Issue: Import errors**
-- Make sure `pyOfferUp` package is installed via `-e .` in requirements.txt
+- Make sure build command includes `pip install -e .` to install the local package
 - Verify all dependencies are in requirements.txt
+- Check that `setup.py` or `pyproject.toml` exists in the root directory
 
 **Issue: "ModuleNotFoundError: No module named 'pyOfferUp'"**
-- Ensure `requirements.txt` includes `-e .` and build command runs successfully
+- Ensure build command includes `pip install -e .` after installing requirements
+- Verify `setup.py` or `pyproject.toml` exists in the root directory
+- Check build logs to confirm package installation succeeded
+
+**Issue: "does not appear to be a Python project: neither 'setup.py' nor 'pyproject.toml' found"**
+- Ensure `setup.py` or `pyproject.toml` is in the repository root
+- Verify the build command runs from the correct directory
+- Try using the build command: `pip install -r requirements.txt && pip install -e .`
 
 **Issue: Different results than local**
 - Check environment variables match local setup
