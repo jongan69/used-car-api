@@ -1,47 +1,210 @@
+# pyOfferUp - OfferUp Scraper & Used Cars API
+
+A Python package for scraping OfferUp listings and a production-grade FastAPI application for searching used cars.
+
+## Table of Contents
+
+- [Installation](#installation)
+- [Package Usage](#package-usage)
+- [API Usage](#api-usage)
+- [Project Structure](#project-structure)
+- [Development](#development)
+
 ## Installation
-```
+
+### Install the Package
+
+```bash
 pip install pyOfferUp
 ```
 
-## Cities and States
-places.py contains all the supported cities and states with their respective coordinates (case sensitive).
+Or install from source:
+
+```bash
+pip install -r requirements.txt
+```
+
+### Install API Dependencies
+
+For the FastAPI application:
+
+```bash
+pip install -r requirements.txt
+```
+
+## Package Usage
+
+### Cities and States
+
+`places.py` contains all supported cities and states with their respective coordinates (case sensitive).
+
 ```python
 from pyOfferUp import places
+
 print(places.available_states())
 print(places.available_cities("Texas"))
 print(places.available_cities("Alabama"))
 ```
-returns:
-```
-['Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado', 'Connecticut', 'Delaware', 'Florida', 'Georgia', 'Hawaii', 'Idaho', 'Illinois', 'Indiana', 'Iowa', 'Kansas', 'Kentucky', 'Louisiana', 'Maine', 'Maryland', 'Massachusetts', 'Michigan', 'Minnesota', 'Mississippi', 'Missouri', 'Montana', 'Nebraska', 'Nevada', 'New Hampshire', 'New Jersey', 'New Mexico', 'New York', 'North Carolina', 'North Dakota', 'Ohio', 'Oklahoma', 'Oregon', 'Pennsylvania', 'Rhode Island', 'South Carolina', 'South Dakota', 'Tennessee', 'Texas', 'Utah', 'Vermont', 'Virginia', 'Washington', 'West Virginia', 'Wisconsin', 'Wyoming']
-['Abilene', 'Addison', 'Amarillo', 'Arlington', 'Austin', 'Baytown', 'Beaumont', 'Brownsville', 'Bryan', 'Carrollton', 'Cedar Hill', 'Channelview', 'Conroe', 'Corpus Christi', 'Dallas', 'Denton', 'Duncanville', 'El Paso', 'Euless', 'Farmers Branch', 'Fort Worth', 'Frisco', 'Garland', 'Grand Prairie', 'Harlingen', 'Houston', 'Humble', 'Irving', 'Katy', 'Killeen', 'Laredo', 'Lewisville', 'Longview', 'Lubbock', 'Lufkin', 'Mansfield', 'Mcallen', 'McKinney', 'Mesquite', 'Midland', 'Midlothian', 'Nacogdoches', 'Odessa', 'Pearland', 'Pflugerville', 'Plano', 'Port Arthur', 'Richardson', 'Round Rock', 'San Angelo', 'San Antonio', 'San Marcos', 'Sherman', 'Stafford', 'Sugar Land', 'Sweetwater', 'Temple', 'Tomball', 'Tyler', 'Victoria', 'Waco', 'Weslaco', 'Wichita Falls']
-['Anniston', 'Birmingham', 'Decatur', 'Dothan', 'Huntsville', 'Mobile', 'Montgomery', 'Selma', 'Tuscaloosa']
-```
 
-## Usage
-#### Example with Cities and States
-Look for "luigis mansion" in Mcallen, Texas:
+### Search Listings by City/State
+
 ```python
 from pyOfferUp import fetch
 
-posts = fetch.get_listings(query="luigis mansion", state="Texas", city="Mcallen", limit=100)
-```
-returns:
-```
-[{'listingId': '820f8610-c54e-37cd-9a3a-9146cbc632c7', 'conditionText': None, 'flags': ['LOCAL_PICKUP'], 'image': {'height': 250, 'url': 'https://thumbor.offerup.com/D-x_hdwcYHyYob5-Xm35YYu4GuA=/250x250/c9c1/c9c15fa3f1e34c91ba7903b13c41d9b2.jpg', 'width': 250}, 'isFirmPrice': None, 'locationName': 'Pharr, TX', 'price': '400', 'title': 'Nintendo Switch Bundle And Games ', 'vehicleMiles': None, 'listingUrl': 'https://offerup.com/item/detail/820f8610-c54e-37cd-9a3a-9146cbc632c7'}, {'listingId': '0339cbe4-6ca4-32da-8dbc-dc907724dcdc', 'conditionText': None, 'flags': ['LOCAL_PICKUP'], 'image': {'height': 250, 'url': 'https://thumbor.offerup.com/1DJaVzQFqKnb5Ddf9SaBZOM-tMo=/250x250/fca8/fca8a55b49f944959aa9788f1aa9a238.jpg', 'width': 250}, 'isFirmPrice': None, 'locationName': 'Harlingen, TX', 'price': '40', 'title': 'Nintendo Switch Games!', 'vehicleMiles': None, 'listingUrl': 'https://offerup.com/item/detail/0339cbe4-6ca4-32da-8dbc-dc907724dcdc'}, {'listingId': 'e6aa5e98-71b7-3e8f-bc9f-5363825dcd33', 'conditionText': None, 'flags': ['LOCAL_PICKUP'], 'image': {'height': 250, 'url': 'https://thumbor.offerup.com/zvFkuoStpnhL0NQa1upgqLt8Y3U=/250x250/096e/096edf083fc44f519257ee71f0c5c408.jpg', 'width': 250}, 'isFirmPrice': None, 'locationName': 'Edinburg, TX', 'price': '120', 'title': 'Nitendo 2ds ', 'vehicleMiles': None, 'listingUrl': 'https://offerup.com/item/detail/e6aa5e98-71b7-3e8f-bc9f-5363825dcd33'}, {'listingId': '71e0f82d-4ab5-379f-b9d6-26b6bfc2f007', 'conditionText': None, 'flags': ['LOCAL_PICKUP'], 'image': {'height': 250, 'url': 'https://thumbor.offerup.com/z_3APWnVSDew8YGdNqHQJPyH7a8=/250x250/c596/c596b13855a249c9822ec3144a294d31.jpg', 'width': 250}, 'isFirmPrice': None, 'locationName': 'Mcallen, TX', 'price': '40', 'title': 'Luigis Mansion 3 (Nintendo Switch)', 'vehicleMiles': None, 'listingUrl': 'https://offerup.com/item/detail/71e0f82d-4ab5-379f-b9d6-26b6bfc2f007'}, {'listingId': '6eefd205-2d9b-39ce-a69e-45772c023107', 'conditionText': None, 'flags': ['LOCAL_PICKUP'], 'image': {'height': 250, 'url': 'https://thumbor.offerup.com/7So5tPl7rC5TKTJbsozV-Ts0dCY=/250x250/ee79/ee792e71f2b943d5a4cf3e6458515603.jpg', 'width': 250}, 'isFirmPrice': None, 'locationName': 'Mercedes, TX', 'price': '25', 'title': 'Nintendo Switch Games ', 'vehicleMiles': None, 'listingUrl': 'https://offerup.com/item/detail/6eefd205-2d9b-39ce-a69e-45772c023107'}, {'listingId': 'da66684c-5bda-339d-b7c3-ee4a537f0c7c', 'conditionText': None, 'flags': ['LOCAL_PICKUP'], 'image': {'height': 250, 'url': 'https://thumbor.offerup.com/F2Bac_gCvvagjYcMuOzEIYNlDA4=/250x250/9a48/9a48b423f9764ae1938edf81cd442661.jpg', 'width': 250}, 'isFirmPrice': None, 'locationName': 'Penitas, TX', 'price': '20', 'title': 'Luigi’s Mansion Dark Moon 3DS', 'vehicleMiles': None, 'listingUrl': 'https://offerup.com/item/detail/da66684c-5bda-339d-b7c3-ee4a537f0c7c'}, {'listingId': '3c4aa614-ceda-31e9-a93c-084ff489a208', 'conditionText': None, 'flags': ['LOCAL_PICKUP'], 'image': {'height': 250, 'url': 'https://thumbor.offerup.com/4uJ7PAUFUxdOQ7PaNaQfXyeJRO8=/250x250/8a31/8a31c21f73ca4fd39d2a85411a14d350.jpg', 'width': 250}, 'isFirmPrice': None, 'locationName': 'Palmview, TX', 'price': '480', 'title': 'Nintendo Switch', 'vehicleMiles': None, 'listingUrl': 'https://offerup.com/item/detail/3c4aa614-ceda-31e9-a93c-084ff489a208'}, {'listingId': '1c43afb1-a68c-3e89-8fa1-6396bf35232a', 'conditionText': None, 'flags': ['LOCAL_PICKUP'], 'image': {'height': 250, 'url': 'https://thumbor.offerup.com/VTlDKHB73WzV_fK1MNJr3etPOYs=/250x250/fa06/fa062a3abe4444568f241d4c94dd531b.jpg', 'width': 250}, 'isFirmPrice': None, 'locationName': 'Edinburg, TX', 'price': '45', 'title': 'luigis mansion for sale or trade', 'vehicleMiles': None, 'listingUrl': 'https://offerup.com/item/detail/1c43afb1-a68c-3e89-8fa1-6396bf35232a'}, {'listingId': 'b5f43a1e-f816-3d75-91f9-b1f6732d2b80', 'conditionText': None, 'flags': ['LOCAL_PICKUP'], 'image': {'height': 250, 'url': 'https://thumbor.offerup.com/TM6yBRicemwkSGYdVbzCF6H7rwM=/250x250/8c86/8c86cbddf76349ff927e6ebf0e846316.jpg', 'width': 250}, 'isFirmPrice': None, 'locationName': 'San Juan, TX', 'price': '1', 'title': 'Nintendo 3ds Games', 'vehicleMiles': None, 'listingUrl': 'https://offerup.com/item/detail/b5f43a1e-f816-3d75-91f9-b1f6732d2b80'}, {'listingId': 'a565f8b6-5ba1-3463-aa7a-2ebd7f9c7dae', 'conditionText': None, 'flags': ['LOCAL_PICKUP'], 'image': {'height': 514, 'url': 'https://thumbor.offerup.com/9W-NOHRA8pA2Mta0tugp6pYod7k=/250x514/4de3/4de3fbd4f78540988a9f9b265bb2a2fb.jpg', 'width': 250}, 'isFirmPrice': None, 'locationName': 'McAllen, TX', 'price': '75.00', 'title': 'LUIGI\'S MANSION 3 9" PVC PAINTED STATUE', 'vehicleMiles': None, 'listingUrl': 'https://offerup.com/item/detail/a565f8b6-5ba1-3463-aa7a-2ebd7f9c7dae'}]
+# Search for listings in a specific city
+posts = fetch.get_listings(
+    query="luigis mansion", 
+    state="Texas", 
+    city="Mcallen", 
+    limit=100
+)
+
+# NOTE: When looking in a city you must also provide the state the city resides in.
 ```
 
-**NOTE:** When looking in
-a city you must also provide the state the city resides in.
+### Search Listings by Coordinates
 
-#### Example with Latitude and Longitude
-Look for "luigis mansion" around lat=26.2043691, lon=-98.230082
 ```python
 from pyOfferUp import fetch
 
-posts = fetch.get_listings_by_lat_lon(query="luigis mansion", lat=26.2043691, lon=-98.230082, limit=100)
+# Search around specific coordinates
+posts = fetch.get_listings_by_lat_lon(
+    query="luigis mansion", 
+    lat=26.2043691, 
+    lon=-98.230082, 
+    limit=100
+)
 ```
-returns:
+
+### Get Listing Details
+
+```python
+from pyOfferUp import fetch
+
+details = fetch.get_listing_details(listing_id)
 ```
-[{'listingId': '820f8610-c54e-37cd-9a3a-9146cbc632c7', 'conditionText': None, 'flags': ['LOCAL_PICKUP'], 'image': {'height': 250, 'url': 'https://thumbor.offerup.com/D-x_hdwcYHyYob5-Xm35YYu4GuA=/250x250/c9c1/c9c15fa3f1e34c91ba7903b13c41d9b2.jpg', 'width': 250}, 'isFirmPrice': None, 'locationName': 'Pharr, TX', 'price': '400', 'title': 'Nintendo Switch Bundle And Games ', 'vehicleMiles': None, 'listingUrl': 'https://offerup.com/item/detail/820f8610-c54e-37cd-9a3a-9146cbc632c7'}, {'listingId': '0339cbe4-6ca4-32da-8dbc-dc907724dcdc', 'conditionText': None, 'flags': ['LOCAL_PICKUP'], 'image': {'height': 250, 'url': 'https://thumbor.offerup.com/1DJaVzQFqKnb5Ddf9SaBZOM-tMo=/250x250/fca8/fca8a55b49f944959aa9788f1aa9a238.jpg', 'width': 250}, 'isFirmPrice': None, 'locationName': 'Harlingen, TX', 'price': '40', 'title': 'Nintendo Switch Games!', 'vehicleMiles': None, 'listingUrl': 'https://offerup.com/item/detail/0339cbe4-6ca4-32da-8dbc-dc907724dcdc'}, {'listingId': 'e6aa5e98-71b7-3e8f-bc9f-5363825dcd33', 'conditionText': None, 'flags': ['LOCAL_PICKUP'], 'image': {'height': 250, 'url': 'https://thumbor.offerup.com/zvFkuoStpnhL0NQa1upgqLt8Y3U=/250x250/096e/096edf083fc44f519257ee71f0c5c408.jpg', 'width': 250}, 'isFirmPrice': None, 'locationName': 'Edinburg, TX', 'price': '120', 'title': 'Nitendo 2ds ', 'vehicleMiles': None, 'listingUrl': 'https://offerup.com/item/detail/e6aa5e98-71b7-3e8f-bc9f-5363825dcd33'}, {'listingId': '71e0f82d-4ab5-379f-b9d6-26b6bfc2f007', 'conditionText': None, 'flags': ['LOCAL_PICKUP'], 'image': {'height': 250, 'url': 'https://thumbor.offerup.com/z_3APWnVSDew8YGdNqHQJPyH7a8=/250x250/c596/c596b13855a249c9822ec3144a294d31.jpg', 'width': 250}, 'isFirmPrice': None, 'locationName': 'Mcallen, TX', 'price': '40', 'title': 'Luigis Mansion 3 (Nintendo Switch)', 'vehicleMiles': None, 'listingUrl': 'https://offerup.com/item/detail/71e0f82d-4ab5-379f-b9d6-26b6bfc2f007'}, {'listingId': '6eefd205-2d9b-39ce-a69e-45772c023107', 'conditionText': None, 'flags': ['LOCAL_PICKUP'], 'image': {'height': 250, 'url': 'https://thumbor.offerup.com/7So5tPl7rC5TKTJbsozV-Ts0dCY=/250x250/ee79/ee792e71f2b943d5a4cf3e6458515603.jpg', 'width': 250}, 'isFirmPrice': None, 'locationName': 'Mercedes, TX', 'price': '25', 'title': 'Nintendo Switch Games ', 'vehicleMiles': None, 'listingUrl': 'https://offerup.com/item/detail/6eefd205-2d9b-39ce-a69e-45772c023107'}, {'listingId': 'da66684c-5bda-339d-b7c3-ee4a537f0c7c', 'conditionText': None, 'flags': ['LOCAL_PICKUP'], 'image': {'height': 250, 'url': 'https://thumbor.offerup.com/F2Bac_gCvvagjYcMuOzEIYNlDA4=/250x250/9a48/9a48b423f9764ae1938edf81cd442661.jpg', 'width': 250}, 'isFirmPrice': None, 'locationName': 'Penitas, TX', 'price': '20', 'title': 'Luigi’s Mansion Dark Moon 3DS', 'vehicleMiles': None, 'listingUrl': 'https://offerup.com/item/detail/da66684c-5bda-339d-b7c3-ee4a537f0c7c'}, {'listingId': '3c4aa614-ceda-31e9-a93c-084ff489a208', 'conditionText': None, 'flags': ['LOCAL_PICKUP'], 'image': {'height': 250, 'url': 'https://thumbor.offerup.com/4uJ7PAUFUxdOQ7PaNaQfXyeJRO8=/250x250/8a31/8a31c21f73ca4fd39d2a85411a14d350.jpg', 'width': 250}, 'isFirmPrice': None, 'locationName': 'Palmview, TX', 'price': '480', 'title': 'Nintendo Switch', 'vehicleMiles': None, 'listingUrl': 'https://offerup.com/item/detail/3c4aa614-ceda-31e9-a93c-084ff489a208'}, {'listingId': '1c43afb1-a68c-3e89-8fa1-6396bf35232a', 'conditionText': None, 'flags': ['LOCAL_PICKUP'], 'image': {'height': 250, 'url': 'https://thumbor.offerup.com/VTlDKHB73WzV_fK1MNJr3etPOYs=/250x250/fa06/fa062a3abe4444568f241d4c94dd531b.jpg', 'width': 250}, 'isFirmPrice': None, 'locationName': 'Edinburg, TX', 'price': '45', 'title': 'luigis mansion for sale or trade', 'vehicleMiles': None, 'listingUrl': 'https://offerup.com/item/detail/1c43afb1-a68c-3e89-8fa1-6396bf35232a'}, {'listingId': 'b5f43a1e-f816-3d75-91f9-b1f6732d2b80', 'conditionText': None, 'flags': ['LOCAL_PICKUP'], 'image': {'height': 250, 'url': 'https://thumbor.offerup.com/TM6yBRicemwkSGYdVbzCF6H7rwM=/250x250/8c86/8c86cbddf76349ff927e6ebf0e846316.jpg', 'width': 250}, 'isFirmPrice': None, 'locationName': 'San Juan, TX', 'price': '1', 'title': 'Nintendo 3ds Games', 'vehicleMiles': None, 'listingUrl': 'https://offerup.com/item/detail/b5f43a1e-f816-3d75-91f9-b1f6732d2b80'}, {'listingId': 'a565f8b6-5ba1-3463-aa7a-2ebd7f9c7dae', 'conditionText': None, 'flags': ['LOCAL_PICKUP'], 'image': {'height': 514, 'url': 'https://thumbor.offerup.com/9W-NOHRA8pA2Mta0tugp6pYod7k=/250x514/4de3/4de3fbd4f78540988a9f9b265bb2a2fb.jpg', 'width': 250}, 'isFirmPrice': None, 'locationName': 'McAllen, TX', 'price': '75.00', 'title': 'LUIGI\'S MANSION 3 9" PVC PAINTED STATUE', 'vehicleMiles': None, 'listingUrl': 'https://offerup.com/item/detail/a565f8b6-5ba1-3463-aa7a-2ebd7f9c7dae'}]
-```# used-car-api
+
+## API Usage
+
+### Quick Start
+
+1. **Run the API server:**
+```bash
+python main.py
+```
+
+Or using uvicorn:
+```bash
+uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+2. **Access the API:**
+- API Docs: http://localhost:8000/docs
+- ReDoc: http://localhost:8000/redoc
+- Health Check: http://localhost:8000/api/v1/health
+
+### API Endpoints
+
+#### Car Search
+- `POST /api/v1/cars/search` - Search for cars (with request body)
+- `GET /api/v1/cars/search` - Search for cars (with query parameters)
+- `GET /api/v1/cars/{listing_id}` - Get detailed car information
+
+#### Locations
+- `GET /api/v1/locations/states` - Get all available states
+- `GET /api/v1/locations/cities?state={state}` - Get cities for a state
+- `GET /api/v1/locations/coordinates?state={state}&city={city}` - Get coordinates
+
+#### Health
+- `GET /api/v1/health` - Health check endpoint
+
+### Example API Calls
+
+#### Search for 2014 CLS63 Mercedes with < 100,000 miles
+
+```bash
+curl -X POST "http://localhost:8000/api/v1/cars/search" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "CLS63 Mercedes",
+    "state": "California",
+    "city": "Los Angeles",
+    "year": 2014,
+    "max_miles": 100000,
+    "limit": 10
+  }'
+```
+
+#### Search using GET endpoint
+
+```bash
+curl "http://localhost:8000/api/v1/cars/search?query=Honda+Civic&state=Texas&city=Austin&limit=10"
+```
+
+#### Get car details
+
+```bash
+curl "http://localhost:8000/api/v1/cars/{listing_id}"
+```
+
+### API Configuration
+
+Set environment variables (optional):
+- `HOST`: Server host (default: 0.0.0.0)
+- `PORT`: Server port (default: 8000)
+- `DEBUG`: Enable debug mode (default: false)
+- `CORS_ORIGINS`: CORS allowed origins (default: *)
+
+## Project Structure
+
+```
+.
+├── main.py                 # FastAPI application entry point
+├── pyOfferUp/              # Core package
+│   ├── __init__.py
+│   ├── fetch.py            # Scraping functions
+│   ├── places.py           # Location data
+│   └── constants.py        # Constants and enums
+├── api/                    # FastAPI application
+│   ├── config.py          # Configuration settings
+│   ├── models.py          # Pydantic models
+│   ├── middleware.py       # Custom middleware
+│   ├── routers/           # API route handlers
+│   │   ├── cars.py
+│   │   ├── locations.py
+│   │   └── health.py
+│   └── services/          # Business logic
+│       ├── car_service.py
+│       └── location_service.py
+├── tests/                 # Test files
+│   ├── test_package.py
+│   ├── test_used_cars.py
+│   └── test_cls63_search.py
+├── requirements.txt       # Python dependencies
+├── setup.py              # Package setup
+└── README.md             # This file
+```
+
+## Development
+
+### Running Tests
+
+```bash
+# Run package tests
+python -m pytest tests/
+
+# Or run individual test files
+python tests/test_package.py
+python tests/test_used_cars.py
+python tests/test_cls63_search.py
+```
+
+### Building the Package
+
+```bash
+python setup.py sdist bdist_wheel
+```
+
+## License
+
+See LICENSE.txt for details.
