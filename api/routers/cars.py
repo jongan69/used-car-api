@@ -1,14 +1,13 @@
 from fastapi import APIRouter, HTTPException, Query, Depends
-from typing import Optional, List
+from typing import Optional
 import logging
 
 from api.models import (
-    CarSearchRequest, CarSearchResponse, CarListing, VehicleAttributes,
-    CarDetailResponse, Condition, SortOption, DeliveryOption
+    CarSearchRequest, CarSearchResponse,
+    SortOption
 )
 from api.services.car_service import CarService
 from api.services.location_service import LocationService
-from api.config import settings
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -31,18 +30,19 @@ async def search_cars(
 ):
     """
     Search for used cars with advanced filtering options.
+    All fields are optional to maximize returned results.
     
-    - **query**: Search query (e.g., "Honda Civic", "Mercedes CLS63")
+    - **query**: Search query (optional, e.g., "Honda Civic", "Mercedes CLS63")
     - **state**: State name (optional, required if city is provided)
     - **city**: City name (optional)
     - **lat/lon**: Coordinates (optional, alternative to state/city)
-    - **limit**: Maximum number of results (1-100)
-    - **price_min/price_max**: Price range filter
-    - **year**: Filter by vehicle year
-    - **make**: Filter by vehicle make
-    - **model**: Filter by vehicle model
-    - **max_miles**: Maximum mileage filter
-    - **sort**: Sort option (newest_first, closest_first, price_low_to_high, price_high_to_low)
+    - **limit**: Maximum number of results (optional, default: 50, range: 1-100)
+    - **price_min/price_max**: Price range filter (optional)
+    - **year**: Filter by vehicle year (optional)
+    - **make**: Filter by vehicle make (optional)
+    - **model**: Filter by vehicle model (optional)
+    - **max_miles**: Maximum mileage filter (optional)
+    - **sort**: Sort option (optional, default: newest_first)
     """
     try:
         logger.info(f"Car search request: {request.model_dump()}")
@@ -52,7 +52,7 @@ async def search_cars(
         return CarSearchResponse(
             total_results=len(results),
             listings=results,
-            query=request.query,
+            query=request.get_query() or "",
             filters_applied=request.model_dump(exclude_none=True)
         )
     except ValueError as e:
@@ -65,19 +65,19 @@ async def search_cars(
 
 @router.get("/cars/search", response_model=CarSearchResponse)
 async def search_cars_get(
-    query: str = Query(..., min_length=1, description="Search query"),
+    query: Optional[str] = Query(None, description="Search query"),
     state: Optional[str] = Query(None, description="State name"),
     city: Optional[str] = Query(None, description="City name"),
     lat: Optional[float] = Query(None, description="Latitude"),
     lon: Optional[float] = Query(None, description="Longitude"),
-    limit: int = Query(50, ge=1, le=100, description="Maximum results"),
+    limit: Optional[int] = Query(50, ge=1, le=100, description="Maximum results"),
     price_min: Optional[int] = Query(None, ge=0, description="Minimum price"),
     price_max: Optional[int] = Query(None, ge=0, description="Maximum price"),
     year: Optional[int] = Query(None, ge=1900, le=2030, description="Vehicle year"),
     make: Optional[str] = Query(None, description="Vehicle make"),
     model: Optional[str] = Query(None, description="Vehicle model"),
     max_miles: Optional[int] = Query(None, ge=0, description="Maximum mileage"),
-    sort: SortOption = Query(SortOption.NEWEST_FIRST, description="Sort option"),
+    sort: Optional[SortOption] = Query(SortOption.NEWEST_FIRST, description="Sort option"),
     car_service: CarService = Depends(get_car_service)
 ):
     """

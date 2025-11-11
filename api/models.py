@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, model_validator
-from typing import Optional, List, Literal
+from typing import Optional, List
 from enum import Enum
 
 
@@ -30,18 +30,18 @@ class DeliveryOption(str, Enum):
 
 class CarSearchRequest(BaseModel):
     """Request model for car search"""
-    query: str = Field(..., min_length=1, max_length=200, description="Search query (e.g., 'Honda Civic', 'Mercedes CLS63')")
+    query: Optional[str] = Field(None, max_length=200, description="Search query (e.g., 'Honda Civic', 'Mercedes CLS63')")
     state: Optional[str] = Field(None, description="State name (e.g., 'California', 'Texas')")
     city: Optional[str] = Field(None, description="City name (e.g., 'Los Angeles', 'Dallas')")
     lat: Optional[float] = Field(None, ge=-90, le=90, description="Latitude")
     lon: Optional[float] = Field(None, ge=-180, le=180, description="Longitude")
-    limit: int = Field(50, ge=1, le=100, description="Maximum number of results")
-    pickup_distance: int = Field(50, ge=1, le=500, description="Pickup distance in miles")
+    limit: Optional[int] = Field(50, ge=1, le=100, description="Maximum number of results")
+    pickup_distance: Optional[int] = Field(50, ge=1, le=500, description="Pickup distance in miles")
     price_min: Optional[int] = Field(None, ge=0, description="Minimum price in dollars")
     price_max: Optional[int] = Field(None, ge=0, description="Maximum price in dollars")
-    sort: SortOption = Field(SortOption.NEWEST_FIRST, description="Sort option")
-    delivery: DeliveryOption = Field(DeliveryOption.PICKUP, description="Delivery option")
-    conditions: List[Condition] = Field(default_factory=list, description="Car conditions to filter by")
+    sort: Optional[SortOption] = Field(SortOption.NEWEST_FIRST, description="Sort option")
+    delivery: Optional[DeliveryOption] = Field(DeliveryOption.PICKUP, description="Delivery option")
+    conditions: Optional[List[Condition]] = Field(default_factory=list, description="Car conditions to filter by")
     
     # Vehicle-specific filters
     year: Optional[int] = Field(None, ge=1900, le=2030, description="Vehicle year")
@@ -60,6 +60,10 @@ class CarSearchRequest(BaseModel):
         if self.city is not None and self.state is None:
             raise ValueError("State must be provided when city is specified")
         return self
+    
+    def get_query(self) -> str:
+        """Get query value, defaulting to 'car' if None to ensure car-only results"""
+        return self.query or "car"
 
 
 class VehicleAttributes(BaseModel):
