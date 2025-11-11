@@ -1,4 +1,4 @@
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import List
 import os
 
@@ -7,8 +7,9 @@ class Settings(BaseSettings):
     """Application settings"""
     
     # Server settings
+    # Render sets PORT environment variable automatically
     HOST: str = "0.0.0.0"
-    PORT: int = 8000
+    PORT: int = 8000  # Will be overridden by Render's PORT env var
     DEBUG: bool = False
     
     # CORS settings
@@ -30,9 +31,19 @@ class Settings(BaseSettings):
     # Logging
     LOG_LEVEL: str = "INFO"
     
-    class Config:
-        env_file = ".env"
-        case_sensitive = True
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=True,
+        extra="ignore"
+    )
+    
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        # Override PORT from environment if set (Render sets this)
+        port_env = os.getenv("PORT")
+        if port_env:
+            self.PORT = int(port_env)
 
 
 settings = Settings()
