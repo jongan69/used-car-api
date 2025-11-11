@@ -32,16 +32,18 @@ async def search_cars(
     """
     Search for used cars with advanced filtering options.
     
-    - **query**: Search query (e.g., "Honda Civic", "Mercedes CLS63")
-    - **state**: State name (optional, required if city is provided)
-    - **city**: City name (optional)
+    All parameters are optional - omit them to get broader results.
+    
+    - **query**: Search query (optional - omit for broader results, e.g., "Honda Civic", "Mercedes CLS63")
+    - **state**: State name (optional - omit for broader geographic results)
+    - **city**: City name (optional - requires state if provided)
     - **lat/lon**: Coordinates (optional, alternative to state/city)
-    - **limit**: Maximum number of results (1-100)
-    - **price_min/price_max**: Price range filter
-    - **year**: Filter by vehicle year
-    - **make**: Filter by vehicle make
-    - **model**: Filter by vehicle model
-    - **max_miles**: Maximum mileage filter
+    - **limit**: Maximum number of results (1-100, default: 50)
+    - **price_min/price_max**: Price range filter (optional)
+    - **year**: Filter by vehicle year (optional)
+    - **make**: Filter by vehicle make (optional)
+    - **model**: Filter by vehicle model (optional)
+    - **max_miles/min_miles**: Mileage filters (optional)
     - **sort**: Sort option (newest_first, closest_first, price_low_to_high, price_high_to_low)
     """
     try:
@@ -49,10 +51,13 @@ async def search_cars(
         
         results = await car_service.search_cars(request)
         
+        # Use actual query (may be default "car" if not provided)
+        actual_query = request.query if request.query else "car"
+        
         return CarSearchResponse(
             total_results=len(results),
             listings=results,
-            query=request.query,
+            query=actual_query,
             filters_applied=request.model_dump(exclude_none=True)
         )
     except ValueError as e:
@@ -65,7 +70,7 @@ async def search_cars(
 
 @router.get("/cars/search", response_model=CarSearchResponse)
 async def search_cars_get(
-    query: str = Query(..., min_length=1, description="Search query"),
+    query: Optional[str] = Query(None, description="Search query (optional - omit for broader results)"),
     state: Optional[str] = Query(None, description="State name"),
     city: Optional[str] = Query(None, description="City name"),
     lat: Optional[float] = Query(None, description="Latitude"),
@@ -77,12 +82,15 @@ async def search_cars_get(
     make: Optional[str] = Query(None, description="Vehicle make"),
     model: Optional[str] = Query(None, description="Vehicle model"),
     max_miles: Optional[int] = Query(None, ge=0, description="Maximum mileage"),
+    min_miles: Optional[int] = Query(None, ge=0, description="Minimum mileage"),
     sort: SortOption = Query(SortOption.NEWEST_FIRST, description="Sort option"),
     car_service: CarService = Depends(get_car_service)
 ):
     """
     Search for used cars (GET endpoint for convenience).
     Same functionality as POST /cars/search but using query parameters.
+    
+    All parameters are optional - omit them to get broader results.
     """
     request = CarSearchRequest(
         query=query,
@@ -97,6 +105,7 @@ async def search_cars_get(
         make=make,
         model=model,
         max_miles=max_miles,
+        min_miles=min_miles,
         sort=sort
     )
     

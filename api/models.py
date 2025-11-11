@@ -30,7 +30,7 @@ class DeliveryOption(str, Enum):
 
 class CarSearchRequest(BaseModel):
     """Request model for car search"""
-    query: str = Field(..., min_length=1, max_length=200, description="Search query (e.g., 'Honda Civic', 'Mercedes CLS63')")
+    query: Optional[str] = Field(None, max_length=200, description="Search query (e.g., 'Honda Civic', 'Mercedes CLS63'). If omitted, returns broader results.")
     state: Optional[str] = Field(None, description="State name (e.g., 'California', 'Texas')")
     city: Optional[str] = Field(None, description="City name (e.g., 'Los Angeles', 'Dallas')")
     lat: Optional[float] = Field(None, ge=-90, le=90, description="Latitude")

@@ -131,10 +131,23 @@ curl -X POST "http://localhost:8000/api/v1/cars/search" \
   }'
 ```
 
-#### Search using GET endpoint
+#### Search using GET endpoint with filters
 
 ```bash
 curl "http://localhost:8000/api/v1/cars/search?query=Honda+Civic&state=Texas&city=Austin&limit=10"
+```
+
+#### Broader search - minimal parameters (all optional)
+
+```bash
+# Get cars without specifying query or location (uses defaults)
+curl "http://localhost:8000/api/v1/cars/search?limit=20"
+
+# Get cars by make only
+curl "http://localhost:8000/api/v1/cars/search?make=Mercedes&limit=20"
+
+# Get cars by year and price range only
+curl "http://localhost:8000/api/v1/cars/search?year=2020&price_min=10000&price_max=50000&limit=20"
 ```
 
 #### Get car details
@@ -142,6 +155,11 @@ curl "http://localhost:8000/api/v1/cars/search?query=Honda+Civic&state=Texas&cit
 ```bash
 curl "http://localhost:8000/api/v1/cars/{listing_id}"
 ```
+
+**Note:** All query parameters are optional. Omit parameters to get broader results:
+- No `query` → Uses default "car" search term
+- No `state`/`city`/`lat`/`lon` → Uses default location (California)
+- No filters → Returns all matching listings
 
 ### API Configuration
 

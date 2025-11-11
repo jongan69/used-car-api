@@ -64,7 +64,9 @@ class CarService:
     def _search_cars_sync(self, request: CarSearchRequest) -> List[dict]:
         """Synchronous car search (runs in thread pool)"""
         try:
-            logger.info(f"Searching with query: {request.query}, state: {request.state}, city: {request.city}")
+            # Use default query if not provided (broader search)
+            query = request.query if request.query else "car"
+            logger.info(f"Searching with query: {query}, state: {request.state}, city: {request.city}")
             
             # Convert request conditions to pyOfferUp constants
             conditions = []
@@ -97,12 +99,12 @@ class CarService:
             }
             delivery_option = delivery_mapping.get(request.delivery.name, DELIVERY.PICKUP)
             
-            # Determine search method
+            # Determine search method - location is now optional
             if request.lat is not None and request.lon is not None:
                 # Search by coordinates
                 logger.info(f"Searching by coordinates: lat={request.lat}, lon={request.lon}")
                 listings = fetch.get_listings_by_lat_lon(
-                    query=request.query,
+                    query=query,
                     lat=request.lat,
                     lon=request.lon,
                     limit=request.limit,
@@ -117,7 +119,7 @@ class CarService:
                 # Search by state/city
                 logger.info(f"Searching by location: state={request.state}, city={request.city}")
                 listings = fetch.get_listings(
-                    query=request.query,
+                    query=query,
                     state=request.state,
                     city=request.city,
                     limit=request.limit,
@@ -129,7 +131,21 @@ class CarService:
                     conditions=conditions
                 )
             else:
-                raise ValueError("Either state/city or lat/lon must be provided")
+                # No location provided - use a default location (e.g., California) for broader results
+                # Or you could search by a popular state
+                logger.info("No location provided - using default location (California) for broader search")
+                listings = fetch.get_listings(
+                    query=query,
+                    state="California",  # Default to a high-volume state
+                    city=None,
+                    limit=request.limit,
+                    pickup_distance=request.pickup_distance,
+                    price_min=request.price_min,
+                    price_max=request.price_max,
+                    sort=sort_option,
+                    delivery=delivery_option,
+                    conditions=conditions
+                )
             
             logger.info(f"Search returned {len(listings)} listings")
             return listings
@@ -214,7 +230,8 @@ class CarService:
         make_to_check = request.make
         model_to_check = request.model
         
-        if not make_to_check or not model_to_check:
+        # Only extract from query if query is provided and not empty
+        if request.query and (not make_to_check or not model_to_check):
             query_make, query_model = self._extract_keywords_from_query(request.query)
             if not make_to_check and query_make:
                 make_to_check = query_make
