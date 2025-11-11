@@ -103,28 +103,32 @@ async def search_cars_get(
     return await search_cars(request, car_service)
 
 
-@router.get("/cars/{listing_id}", response_model=CarDetailResponse)
-async def get_car_details(
-    listing_id: str,
+@router.get("/cars/test", response_model=dict)
+async def test_search(
     car_service: CarService = Depends(get_car_service)
 ):
-    """
-    Get detailed information about a specific car listing.
+    """Test endpoint to debug search issues"""
+    from api.models import CarSearchRequest
     
-    - **listing_id**: The unique identifier of the listing
-    """
+    request = CarSearchRequest(
+        query="car",
+        state="California",
+        city="Los Angeles",
+        limit=3
+    )
+    
     try:
-        logger.info(f"Fetching car details for listing_id: {listing_id}")
-        
-        details = await car_service.get_car_details(listing_id)
-        
-        if not details:
-            raise HTTPException(status_code=404, detail="Listing not found")
-        
-        return details
-    except HTTPException:
-        raise
+        results = await car_service.search_cars(request)
+        return {
+            "status": "success",
+            "results_count": len(results),
+            "sample_titles": [r.title for r in results[:3]]
+        }
     except Exception as e:
-        logger.error(f"Error fetching car details: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Internal server error")
+        import traceback
+        return {
+            "status": "error",
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        }
 

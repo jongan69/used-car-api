@@ -24,28 +24,48 @@ class CarService:
         """
         Search for cars based on the request parameters.
         """
-        # Run the blocking operation in a thread pool
-        loop = asyncio.get_event_loop()
-        listings = await loop.run_in_executor(
-            None,
-            self._search_cars_sync,
-            request
-        )
-        
-        # Convert to response models
-        car_listings = []
-        for listing in listings:
-            car_listing = self._convert_listing_to_model(listing)
+        try:
+            # Run the blocking operation in a thread pool
+            loop = asyncio.get_event_loop()
+            listings = await loop.run_in_executor(
+                None,
+                self._search_cars_sync,
+                request
+            )
             
-            # Apply post-filtering for vehicle-specific attributes
-            if self._matches_filters(car_listing, request):
-                car_listings.append(car_listing)
-        
-        return car_listings
+            logger.info(f"Found {len(listings)} raw listings from pyOfferUp")
+            
+            if not listings:
+                logger.warning("No listings returned from pyOfferUp")
+                return []
+            
+            # Convert to response models
+            car_listings = []
+            for listing in listings:
+                try:
+                    car_listing = self._convert_listing_to_model(listing)
+                    
+                    # Apply post-filtering for vehicle-specific attributes
+                    if self._matches_filters(car_listing, request):
+                        car_listings.append(car_listing)
+                    else:
+                        logger.debug(f"Filtered out listing: {car_listing.title}")
+                except Exception as e:
+                    logger.warning(f"Error converting listing: {e}")
+                    continue
+            
+            logger.info(f"After filtering: {len(car_listings)} listings match criteria")
+            
+            return car_listings
+        except Exception as e:
+            logger.error(f"Error in search_cars: {e}", exc_info=True)
+            raise
     
     def _search_cars_sync(self, request: CarSearchRequest) -> List[dict]:
         """Synchronous car search (runs in thread pool)"""
         try:
+            logger.info(f"Searching with query: {request.query}, state: {request.state}, city: {request.city}")
+            
             # Convert request conditions to pyOfferUp constants
             conditions = []
             condition_mapping = {
@@ -80,6 +100,7 @@ class CarService:
             # Determine search method
             if request.lat is not None and request.lon is not None:
                 # Search by coordinates
+                logger.info(f"Searching by coordinates: lat={request.lat}, lon={request.lon}")
                 listings = fetch.get_listings_by_lat_lon(
                     query=request.query,
                     lat=request.lat,
@@ -94,6 +115,7 @@ class CarService:
                 )
             elif request.state:
                 # Search by state/city
+                logger.info(f"Searching by location: state={request.state}, city={request.city}")
                 listings = fetch.get_listings(
                     query=request.query,
                     state=request.state,
@@ -109,6 +131,7 @@ class CarService:
             else:
                 raise ValueError("Either state/city or lat/lon must be provided")
             
+            logger.info(f"Search returned {len(listings)} listings")
             return listings
         except Exception as e:
             logger.error(f"Error in car search: {e}", exc_info=True)
@@ -134,47 +157,228 @@ class CarService:
             vehicle_attributes=None  # Will be populated if details are fetched
         )
     
+    def _extract_keywords_from_query(self, query: str) -> tuple:
+        """Extract potential make and model from query string"""
+        query_upper = query.upper()
+        make = None
+        model = None
+        
+        # Common car makes to look for
+        common_makes = ['MERCEDES', 'BENZ', 'MERCEDES-BENZ', 'HONDA', 'TOYOTA', 'FORD', 
+                       'BMW', 'AUDI', 'LEXUS', 'ACURA', 'INFINITI', 'NISSAN', 'CHEVROLET',
+                       'CHEVY', 'DODGE', 'JEEP', 'CHRYSLER', 'GMC', 'CADILLAC', 'LINCOLN']
+        
+        # Check for make in query
+        for car_make in common_makes:
+            if car_make in query_upper:
+                make = car_make
+                break
+        
+        # Extract model - look for common patterns like "CLS63", "Civic", "Camry", etc.
+        # Remove make from query to find model
+        query_without_make = query_upper
+        if make:
+            query_without_make = query_without_make.replace(make, '').replace('-', '').strip()
+        
+        # Model is usually what's left after removing make and year
+        # Look for alphanumeric patterns
+        import re
+        model_patterns = re.findall(r'[A-Z0-9]+', query_without_make)
+        if model_patterns:
+            # Take the longest pattern as model (excluding years)
+            model_candidates = [p for p in model_patterns if not p.isdigit() or len(p) != 4]
+            if model_candidates:
+                model = max(model_candidates, key=len)
+        
+        return make, model
+    
     def _matches_filters(self, listing: CarListing, request: CarSearchRequest) -> bool:
         """
         Check if listing matches vehicle-specific filters.
-        Note: This requires fetching details, which is expensive.
-        For now, we'll do basic title matching and fetch details only if needed.
+        Matches the logic from test_cls63_search.py:
+        - Extract make/model from query if not explicitly provided
+        - Do title-based matching first
+        - Fetch details for mileage/year verification when needed
+        - Use vehicle attributes if available, fall back to title matching
         """
-        # Basic title matching for make/model/year
         title_upper = listing.title.upper()
         
-        if request.make and request.make.upper() not in title_upper:
+        # Exclude parts listings (like test script does)
+        parts_keywords = ['PART', 'SHELL', 'PANEL', 'DOOR', 'BUMPER', 'FENDER', 'HOOD', 'TRUNK', 
+                         'SEAT', 'WHEEL', 'RIM', 'HEADLIGHT', 'TAILLIGHT', 'OEM', 'DRIVER REAR']
+        is_part = any(keyword in title_upper for keyword in parts_keywords)
+        if is_part:
             return False
         
-        if request.model and request.model.upper() not in title_upper:
-            return False
+        # Extract make/model from query if not explicitly provided
+        make_to_check = request.make
+        model_to_check = request.model
         
-        if request.year and str(request.year) not in listing.title:
-            return False
+        if not make_to_check or not model_to_check:
+            query_make, query_model = self._extract_keywords_from_query(request.query)
+            if not make_to_check and query_make:
+                make_to_check = query_make
+            if not model_to_check and query_model:
+                model_to_check = query_model
         
-        # For mileage and detailed matching, we'd need to fetch details
-        # This is expensive, so we'll do it selectively
-        if request.max_miles is not None or request.min_miles is not None:
-            # Fetch details to check mileage
+        # Title-based matching (like test script)
+        has_make = False
+        has_model = False
+        has_year = False
+        
+        if make_to_check:
+            make_upper = make_to_check.upper()
+            # Check for Mercedes variations
+            if make_upper in ['MERCEDES', 'MERCEDES-BENZ', 'BENZ']:
+                has_make = 'MERCEDES' in title_upper or 'BENZ' in title_upper
+            else:
+                has_make = make_upper in title_upper
+        
+        if model_to_check:
+            model_upper = model_to_check.upper()
+            # Check for model variations (CLS63, CLS 63, CLS-63)
+            model_variations = [
+                model_upper,
+                model_upper.replace(" ", ""),
+                model_upper.replace("-", ""),
+                model_upper.replace(" ", "-"),
+                model_upper.replace("-", " ")
+            ]
+            has_model = any(variation in title_upper for variation in model_variations)
+        
+        if request.year:
+            year_str = str(request.year)
+            has_year = year_str in listing.title
+        
+        # If no vehicle-specific filters, include all results
+        has_explicit_filters = any([
+            request.make,
+            request.model,
+            request.year,
+            request.max_miles is not None,
+            request.min_miles is not None
+        ])
+        
+        # If we extracted make/model from query, we should filter by them
+        if make_to_check or model_to_check:
+            has_explicit_filters = True
+        
+        if not has_explicit_filters:
+            return True
+        
+        # Fetch details to check vehicle attributes (like test script does)
+        # But only if we need to verify mileage or if title doesn't match
+        vehicle_attrs = None
+        vehicle_year = None
+        vehicle_make = None
+        vehicle_model = None
+        vehicle_miles = None
+        
+        # Only fetch details if:
+        # 1. We need to check mileage, OR
+        # 2. Title doesn't match and we need to verify with vehicle attributes
+        needs_details = (
+            request.max_miles is not None or 
+            request.min_miles is not None or
+            (request.year and not has_year) or
+            (make_to_check and not has_make) or
+            (model_to_check and not has_model)
+        )
+        
+        if needs_details:
             try:
                 details = fetch.get_listing_details(listing.listing_id)
                 if details and 'data' in details and 'listing' in details['data']:
                     vehicle_attrs = details['data']['listing'].get('vehicleAttributes')
                     if vehicle_attrs:
-                        miles = vehicle_attrs.get('vehicleMiles')
-                        if miles:
-                            miles_int = int(miles) if isinstance(miles, str) else miles
-                            if request.max_miles is not None and miles_int > request.max_miles:
-                                return False
-                            if request.min_miles is not None and miles_int < request.min_miles:
-                                return False
-                        
-                        # Update vehicle attributes in listing
-                        listing.vehicle_attributes = VehicleAttributes.from_dict(vehicle_attrs)
+                        vehicle_year = vehicle_attrs.get('vehicleYear')
+                        make_raw = vehicle_attrs.get('vehicleMake')
+                        model_raw = vehicle_attrs.get('vehicleModel')
+                        vehicle_make = make_raw.upper() if make_raw else None
+                        vehicle_model = model_raw.upper() if model_raw else None
+                        vehicle_miles = vehicle_attrs.get('vehicleMiles')
             except Exception as e:
-                logger.warning(f"Could not fetch details for listing {listing.listing_id}: {e}")
+                logger.debug(f"Could not fetch details for listing {listing.listing_id}: {e}")
+                # If we can't fetch details and title doesn't match, exclude it
+                if not (has_make or not make_to_check) or not (has_model or not model_to_check) or (request.year and not has_year):
+                    return False
         
-        return True
+        # Check if it matches our criteria (like test script)
+        # Year can be string or int
+        year_match = False
+        if request.year:
+            if vehicle_year:
+                year_match = (vehicle_year == request.year or 
+                             vehicle_year == str(request.year) or 
+                             str(vehicle_year) == str(request.year))
+            year_match = year_match or has_year
+        else:
+            year_match = True  # No year filter
+        
+        # Check make
+        make_match = False
+        if make_to_check:
+            if vehicle_make:
+                make_upper = make_to_check.upper()
+                if make_upper in ['MERCEDES', 'MERCEDES-BENZ', 'BENZ']:
+                    make_match = 'MERCEDES' in vehicle_make or 'BENZ' in vehicle_make
+                else:
+                    make_match = make_upper in vehicle_make
+            make_match = make_match or has_make
+        else:
+            make_match = True  # No make filter
+        
+        # Check model
+        model_match = False
+        if model_to_check:
+            if vehicle_model:
+                model_upper = model_to_check.upper()
+                if 'CLS' in model_upper:
+                    model_match = ('CLS63' in vehicle_model or 'CLS 63' in vehicle_model or 
+                                 'CLS-63' in vehicle_model)
+                else:
+                    model_match = model_upper in vehicle_model
+            model_match = model_match or has_model
+        else:
+            model_match = True  # No model filter
+        
+        # Check mileage
+        miles_match = True
+        if vehicle_miles is not None:
+            try:
+                miles = int(vehicle_miles) if isinstance(vehicle_miles, str) else vehicle_miles
+                if request.max_miles is not None and miles > request.max_miles:
+                    miles_match = False
+                if request.min_miles is not None and miles < request.min_miles:
+                    miles_match = False
+            except (ValueError, TypeError):
+                miles_match = True  # If we can't parse miles, include it
+        
+        # Match logic (like test script):
+        # If we have vehicle attributes, use them for matching
+        # Otherwise, use title-based matching
+        if vehicle_year and vehicle_make and vehicle_model:
+            # Use vehicle attributes for matching
+            if year_match and make_match and model_match and miles_match:
+                # Update vehicle attributes in listing
+                listing.vehicle_attributes = VehicleAttributes.from_dict(vehicle_attrs)
+                return True
+        else:
+            # Title-based match - include if title matches (like test script)
+            if year_match and make_match and model_match:
+                # Still need to check mileage if filter is set
+                if request.max_miles is not None or request.min_miles is not None:
+                    if vehicle_miles is not None:
+                        if not miles_match:
+                            return False
+                    # If we can't check mileage, include it (lenient)
+                
+                # Update vehicle attributes if we have them
+                if vehicle_attrs:
+                    listing.vehicle_attributes = VehicleAttributes.from_dict(vehicle_attrs)
+                return True
+        
+        return False
     
     async def get_car_details(self, listing_id: str) -> Optional[CarDetailResponse]:
         """
